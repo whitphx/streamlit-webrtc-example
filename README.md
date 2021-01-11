@@ -21,9 +21,9 @@ The Deployment is automated with GitHub actions: [./.github/workflows/heroku.yml
 
 ### Deploy
 #### If dependencies have changed, update `requirements.txt`
-1. Generate `requirements.txt`.
+1. Update `requirements.txt`.
    ```shell
-   $ pipreqs . --force
+   $ make deps/update
    ```
 
 2. Commit it.
