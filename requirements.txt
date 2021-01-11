@@ -1,7 +1,7 @@
-av==8.0.2
-streamlit==0.74.1
-opencv_python==4.5.1.48
-numpy==1.19.5
-aiortc==1.0.0
 Pillow==8.1.0
+aiortc==1.0.0
+av==8.0.2
+numpy==1.19.5
+opencv_python==4.5.1.48
+streamlit==0.74.1
 streamlit_webrtc==0.2.0
