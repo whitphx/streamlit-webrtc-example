@@ -24,9 +24,11 @@ jobs:
         pip install pipreqs
     - name: Update requirements.txt
       run: pipreqs --print . | sort > requirements.txt
+    - name: git diff
+      run: git diff
     - name: Check Git changes
       run: test "$(git diff --stat)" = ""
-  
+
   deploy:
     needs: [build]
     runs-on: ubuntu-latest
@@ -37,4 +39,3 @@ jobs:
         heroku_api_key: ${{secrets.HEROKU_API_KEY}}
         heroku_app_name: streamlit-webrtc-example
         heroku_email: ${{ secrets.HEROKU_EMAIL }}
-    
