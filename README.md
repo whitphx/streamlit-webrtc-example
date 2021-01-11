@@ -1,5 +1,8 @@
 # streamlit-webrtc-example
 
+Sample page hosted on Heroku: https://streamlit-webrtc-example.herokuapp.com/
+
+The Deployment is automated with GitHub actions: [./.github/workflows/heroku.yml](./.github/workflows/heroku.yml)
 
 ## Manual deployment to heroku
 ### Prerequisites
