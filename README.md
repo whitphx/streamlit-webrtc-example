@@ -1,5 +1,8 @@
 # streamlit-webrtc-example
 
+Sample page hosted on Heroku: https://streamlit-webrtc-example.herokuapp.com/
+
+The Deployment is automated with GitHub actions: [./.github/workflows/heroku.yml](./.github/workflows/heroku.yml)
 
 ## Manual deployment to heroku
 ### Prerequisites
@@ -18,9 +21,9 @@
 
 ### Deploy
 #### If dependencies have changed, update `requirements.txt`
-1. Generate `requirements.txt`.
+1. Update `requirements.txt`.
    ```shell
-   $ pipreqs . --force
+   $ make deps/update
    ```
 
 2. Commit it.
