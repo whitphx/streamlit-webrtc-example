@@ -1,5 +1,7 @@
 # streamlit-webrtc-example
 
+[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
+
 Sample page hosted on Heroku: https://streamlit-webrtc-example.herokuapp.com/
 
 The Deployment is automated with GitHub actions: [./.github/workflows/heroku.yml](./.github/workflows/heroku.yml)
