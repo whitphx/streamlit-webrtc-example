@@ -1,1 +1,2 @@
-libgl1-mesa-dev
+libgl1
+libglib2.0-0
