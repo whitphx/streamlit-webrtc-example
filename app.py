@@ -180,11 +180,10 @@ def app_video_filters():
         async_transform=True,
     )
 
-    transform_type = st.radio(
-        "Select transform type", ("noop", "cartoon", "edges", "rotate")
-    )
     if webrtc_ctx.video_transformer:
-        webrtc_ctx.video_transformer.type = transform_type
+        webrtc_ctx.video_transformer.type = st.radio(
+            "Select transform type", ("noop", "cartoon", "edges", "rotate")
+        )
 
     st.markdown(
         "This demo is based on "
@@ -320,7 +319,12 @@ def app_object_detection():
             # are not strictly synchronized.
             while True:
                 if webrtc_ctx.video_transformer:
-                    result = webrtc_ctx.video_transformer.result_queue.get()
+                    try:
+                        result = webrtc_ctx.video_transformer.result_queue.get(
+                            timeout=1.0
+                        )
+                    except queue.Empty:
+                        result = None
                     labels_placeholder.table(result)
                 else:
                     break
