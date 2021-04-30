@@ -2,6 +2,6 @@ aiortc==1.2.0
 av==8.0.3
 numpy==1.20.2
 opencv_python==4.5.1.48
-streamlit==0.80.0
+streamlit==0.81.0
 streamlit_webrtc==0.11.0
 typing_extensions==3.7.4.3
