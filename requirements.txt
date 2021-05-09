@@ -6,4 +6,4 @@ opencv_python==4.5.1.48
 pydub==0.25.1
 streamlit==0.75.0
 streamlit_webrtc==0.20.0
-typing_extensions==3.7.4.3
+typing_extensions==3.10.0.0
