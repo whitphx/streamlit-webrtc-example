@@ -2,7 +2,7 @@ aiortc==1.2.0
 av==8.0.3
 matplotlib==3.4.2
 numpy==1.19.5
-opencv_python==4.5.1.48
+opencv_python==4.5.2.52
 pydub==0.25.1
 streamlit==0.81.1
 streamlit_webrtc==0.20.0
