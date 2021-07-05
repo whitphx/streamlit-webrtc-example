@@ -5,5 +5,5 @@ numpy==1.21.0
 opencv_python==4.5.2.54
 pydub==0.25.1
 streamlit==0.84.0
-streamlit_webrtc==0.23.3
+streamlit_webrtc==0.23.7
 typing_extensions==3.10.0.0
