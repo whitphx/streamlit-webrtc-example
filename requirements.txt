@@ -1,7 +1,7 @@
 aiortc==1.2.1
 av==8.0.3
 matplotlib==3.4.2
-numpy==1.21.1
+numpy==1.21.2
 opencv-python-headless==4.5.3.56
 pydub==0.25.1
 streamlit==0.87.0
