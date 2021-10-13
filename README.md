@@ -1,14 +1,18 @@
 # streamlit-webrtc-example
 
-[![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py)
-
 [![GitHub Sponsors](https://img.shields.io/github/sponsors/whitphx?label=Sponsor%20me%20on%20GitHub%20Sponsors&style=social)](https://github.com/sponsors/whitphx)
 
 <a href="https://www.buymeacoffee.com/whitphx" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" width="180" height="50" ></a>
 
-Sample page hosted on Heroku: https://streamlit-webrtc-example.herokuapp.com/
+Hosted on Streamlit Cloud: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py) https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py 
 
-The Deployment is automated with GitHub actions: [./.github/workflows/heroku.yml](./.github/workflows/heroku.yml)
+Hosted on Heroku: https://streamlit-webrtc-example.herokuapp.com/
+
+## Deployment notes
+
+The deployment to Heroku is automated with GitHub actions: [./.github/workflows/heroku.yml](./.github/workflows/heroku.yml).
+
+[Streamlit Cloud](https://streamlit.io/cloud) automatically triggers the deployment on its CI/CD.
 
 ## Manual deployment to heroku
 ### Prerequisites
