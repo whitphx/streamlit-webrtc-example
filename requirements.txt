@@ -6,4 +6,4 @@ opencv-python-headless==4.5.4.60
 pydub==0.25.1
 streamlit==1.1.0
 streamlit_webrtc==0.31.5
-typing_extensions==3.10.0.2
+typing_extensions==4.0.0
