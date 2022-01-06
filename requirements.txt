@@ -1,5 +1,5 @@
 aiortc==1.2.1
-av==8.0.3
+av==8.1.0
 matplotlib==3.5.1
 numpy==1.21.4
 opencv-python-headless==4.5.4.60
