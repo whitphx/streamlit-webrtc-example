@@ -4,5 +4,5 @@ numpy==1.21.4
 opencv-python-headless==4.5.5.64
 pydub==0.25.1
 streamlit==1.5.1
-streamlit_webrtc==0.36.0
+streamlit_webrtc==0.36.1
 typing_extensions==4.1.1
