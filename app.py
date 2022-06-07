@@ -4,12 +4,7 @@ import queue
 import threading
 import urllib.request
 from pathlib import Path
-from typing import List, NamedTuple
-
-try:
-    from typing import Literal
-except ImportError:
-    from typing_extensions import Literal  # type: ignore
+from typing import List, NamedTuple, Optional
 
 import av
 import cv2
@@ -20,12 +15,12 @@ import streamlit as st
 from aiortc.contrib.media import MediaPlayer
 
 from streamlit_webrtc import (
-    AudioProcessorBase,
     RTCConfiguration,
-    VideoProcessorBase,
     WebRtcMode,
+    WebRtcStreamerContext,
     webrtc_streamer,
 )
+from streamlit_webrtc.session_info import get_session_id
 
 HERE = Path(__file__).parent
 
@@ -86,63 +81,29 @@ RTC_CONFIGURATION = RTCConfiguration(
 def main():
     st.header("WebRTC demo")
 
-    object_detection_page = "Real time object detection (sendrecv)"
-    video_filters_page = (
-        "Real time video transform with simple OpenCV filters (sendrecv)"
-    )
-    audio_filter_page = "Real time audio filter (sendrecv)"
-    delayed_echo_page = "Delayed echo (sendrecv)"
-    streaming_page = (
-        "Consuming media files on server-side and streaming it to browser (recvonly)"
-    )
-    video_sendonly_page = (
-        "WebRTC is sendonly and images are shown via st.image() (sendonly)"
-    )
-    audio_sendonly_page = (
-        "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)"
-    )
-    loopback_page = "Simple video and audio loopback (sendrecv)"
-    media_constraints_page = (
-        "Configure media constraints and HTML element styles with loopback (sendrecv)"
-    )
-    programatically_control_page = "Control the playing state programatically"
-    app_mode = st.sidebar.selectbox(
-        "Choose the app mode",
-        [
-            object_detection_page,
-            video_filters_page,
-            audio_filter_page,
-            delayed_echo_page,
-            streaming_page,
-            video_sendonly_page,
-            audio_sendonly_page,
-            loopback_page,
-            media_constraints_page,
-            programatically_control_page,
-        ],
-    )
-    st.subheader(app_mode)
+    pages = {
+        "Real time object detection (sendrecv)": app_object_detection,
+        "Real time video transform with simple OpenCV filters (sendrecv)": app_video_filters,  # noqa: E501
+        "Real time audio filter (sendrecv)": app_audio_filter,
+        "Delayed echo (sendrecv)": app_delayed_echo,
+        "Consuming media files on server-side and streaming it to browser (recvonly)": app_streaming,  # noqa: E501
+        "WebRTC is sendonly and images are shown via st.image() (sendonly)": app_sendonly_video,  # noqa: E501
+        "WebRTC is sendonly and audio frames are visualized with matplotlib (sendonly)": app_sendonly_audio,  # noqa: E501
+        "Simple video and audio loopback (sendrecv)": app_loopback,
+        "Configure media constraints and HTML element styles with loopback (sendrecv)": app_media_constraints,  # noqa: E501
+        "Control the playing state programatically": app_programatically_play,
+        "Customize UI texts": app_customize_ui_texts,
+    }
+    page_titles = pages.keys()
 
-    if app_mode == video_filters_page:
-        app_video_filters()
-    elif app_mode == object_detection_page:
-        app_object_detection()
-    elif app_mode == audio_filter_page:
-        app_audio_filter()
-    elif app_mode == delayed_echo_page:
-        app_delayed_echo()
-    elif app_mode == streaming_page:
-        app_streaming()
-    elif app_mode == video_sendonly_page:
-        app_sendonly_video()
-    elif app_mode == audio_sendonly_page:
-        app_sendonly_audio()
-    elif app_mode == loopback_page:
-        app_loopback()
-    elif app_mode == media_constraints_page:
-        app_media_constraints()
-    elif app_mode == programatically_control_page:
-        app_programatically_play()
+    page_title = st.sidebar.selectbox(
+        "Choose the app mode",
+        page_titles,
+    )
+    st.subheader(page_title)
+
+    page_func = pages[page_title]
+    page_func()
 
     st.sidebar.markdown(
         """
@@ -159,69 +120,60 @@ def main():
 
 
 def app_loopback():
-    """ Simple video loopback """
+    """Simple video loopback"""
     webrtc_streamer(key="loopback")
 
 
 def app_video_filters():
-    """ Video transforms with OpenCV """
+    """Video transforms with OpenCV"""
 
-    class OpenCVVideoProcessor(VideoProcessorBase):
-        type: Literal["noop", "cartoon", "edges", "rotate"]
+    _type = st.radio("Select transform type", ("noop", "cartoon", "edges", "rotate"))
 
-        def __init__(self) -> None:
-            self.type = "noop"
+    def callback(frame: av.VideoFrame) -> av.VideoFrame:
+        img = frame.to_ndarray(format="bgr24")
 
-        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-            img = frame.to_ndarray(format="bgr24")
+        if _type == "noop":
+            pass
+        elif _type == "cartoon":
+            # prepare color
+            img_color = cv2.pyrDown(cv2.pyrDown(img))
+            for _ in range(6):
+                img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
+            img_color = cv2.pyrUp(cv2.pyrUp(img_color))
 
-            if self.type == "noop":
-                pass
-            elif self.type == "cartoon":
-                # prepare color
-                img_color = cv2.pyrDown(cv2.pyrDown(img))
-                for _ in range(6):
-                    img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
-                img_color = cv2.pyrUp(cv2.pyrUp(img_color))
+            # prepare edges
+            img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            img_edges = cv2.adaptiveThreshold(
+                cv2.medianBlur(img_edges, 7),
+                255,
+                cv2.ADAPTIVE_THRESH_MEAN_C,
+                cv2.THRESH_BINARY,
+                9,
+                2,
+            )
+            img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
 
-                # prepare edges
-                img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-                img_edges = cv2.adaptiveThreshold(
-                    cv2.medianBlur(img_edges, 7),
-                    255,
-                    cv2.ADAPTIVE_THRESH_MEAN_C,
-                    cv2.THRESH_BINARY,
-                    9,
-                    2,
-                )
-                img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
+            # combine color and edges
+            img = cv2.bitwise_and(img_color, img_edges)
+        elif _type == "edges":
+            # perform edge detection
+            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+        elif _type == "rotate":
+            # rotate image
+            rows, cols, _ = img.shape
+            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
+            img = cv2.warpAffine(img, M, (cols, rows))
 
-                # combine color and edges
-                img = cv2.bitwise_and(img_color, img_edges)
-            elif self.type == "edges":
-                # perform edge detection
-                img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-            elif self.type == "rotate":
-                # rotate image
-                rows, cols, _ = img.shape
-                M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
-                img = cv2.warpAffine(img, M, (cols, rows))
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-            return av.VideoFrame.from_ndarray(img, format="bgr24")
-
-    webrtc_ctx = webrtc_streamer(
+    webrtc_streamer(
         key="opencv-filter",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=OpenCVVideoProcessor,
+        video_frame_callback=callback,
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
-
-    if webrtc_ctx.video_processor:
-        webrtc_ctx.video_processor.type = st.radio(
-            "Select transform type", ("noop", "cartoon", "edges", "rotate")
-        )
 
     st.markdown(
         "This demo is based on "
@@ -231,79 +183,66 @@ def app_video_filters():
 
 
 def app_audio_filter():
-    DEFAULT_GAIN = 1.0
+    gain = st.slider("Gain", -10.0, +20.0, 1.0, 0.05)
 
-    class AudioProcessor(AudioProcessorBase):
-        gain = DEFAULT_GAIN
+    def process_audio(frame: av.AudioFrame) -> av.AudioFrame:
+        raw_samples = frame.to_ndarray()
+        sound = pydub.AudioSegment(
+            data=raw_samples.tobytes(),
+            sample_width=frame.format.bytes,
+            frame_rate=frame.sample_rate,
+            channels=len(frame.layout.channels),
+        )
 
-        def recv(self, frame: av.AudioFrame) -> av.AudioFrame:
-            raw_samples = frame.to_ndarray()
-            sound = pydub.AudioSegment(
-                data=raw_samples.tobytes(),
-                sample_width=frame.format.bytes,
-                frame_rate=frame.sample_rate,
-                channels=len(frame.layout.channels),
-            )
+        sound = sound.apply_gain(gain)
 
-            sound = sound.apply_gain(self.gain)
+        # Ref: https://github.com/jiaaro/pydub/blob/master/API.markdown#audiosegmentget_array_of_samples  # noqa
+        channel_sounds = sound.split_to_mono()
+        channel_samples = [s.get_array_of_samples() for s in channel_sounds]
+        new_samples: np.ndarray = np.array(channel_samples).T
+        new_samples = new_samples.reshape(raw_samples.shape)
 
-            # Ref: https://github.com/jiaaro/pydub/blob/master/API.markdown#audiosegmentget_array_of_samples  # noqa
-            channel_sounds = sound.split_to_mono()
-            channel_samples = [s.get_array_of_samples() for s in channel_sounds]
-            new_samples: np.ndarray = np.array(channel_samples).T
-            new_samples = new_samples.reshape(raw_samples.shape)
+        new_frame = av.AudioFrame.from_ndarray(new_samples, layout=frame.layout.name)
+        new_frame.sample_rate = frame.sample_rate
+        return new_frame
 
-            new_frame = av.AudioFrame.from_ndarray(
-                new_samples, layout=frame.layout.name
-            )
-            new_frame.sample_rate = frame.sample_rate
-            return new_frame
-
-    webrtc_ctx = webrtc_streamer(
+    webrtc_streamer(
         key="audio-filter",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        audio_processor_factory=AudioProcessor,
+        audio_frame_callback=process_audio,
         async_processing=True,
     )
-
-    if webrtc_ctx.audio_processor:
-        webrtc_ctx.audio_processor.gain = st.slider(
-            "Gain", -10.0, +20.0, DEFAULT_GAIN, 0.05
-        )
 
 
 def app_delayed_echo():
-    DEFAULT_DELAY = 1.0
+    delay = st.slider("Delay", 0.0, 5.0, 1.0, 0.05)
 
-    class VideoProcessor(VideoProcessorBase):
-        delay = DEFAULT_DELAY
+    async def queued_video_frames_callback(
+        frames: List[av.VideoFrame],
+    ) -> List[av.VideoFrame]:
+        logger.debug("Delay: %f", delay)
+        # A standalone `await ...` is interpreted as an expression and
+        # the Streamlit magic's target, which leads implicit calls of `st.write`.
+        # To prevent it, fix it as `_ = await ...`, a statement.
+        # See https://discuss.streamlit.io/t/issue-with-asyncio-run-in-streamlit/7745/15
+        _ = await asyncio.sleep(delay)
+        return frames
 
-        async def recv_queued(self, frames: List[av.VideoFrame]) -> List[av.VideoFrame]:
-            logger.debug("Delay:", self.delay)
-            await asyncio.sleep(self.delay)
-            return frames
+    async def queued_audio_frames_callback(
+        frames: List[av.AudioFrame],
+    ) -> List[av.AudioFrame]:
+        _ = await asyncio.sleep(delay)
+        return frames
 
-    class AudioProcessor(AudioProcessorBase):
-        delay = DEFAULT_DELAY
-
-        async def recv_queued(self, frames: List[av.AudioFrame]) -> List[av.AudioFrame]:
-            await asyncio.sleep(self.delay)
-            return frames
-
-    webrtc_ctx = webrtc_streamer(
+    webrtc_streamer(
         key="delay",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=VideoProcessor,
-        audio_processor_factory=AudioProcessor,
+        queued_video_frames_callback=queued_video_frames_callback,
+        queued_audio_frames_callback=queued_audio_frames_callback,
         async_processing=True,
     )
-
-    if webrtc_ctx.video_processor and webrtc_ctx.audio_processor:
-        delay = st.slider("Delay", 0.0, 5.0, DEFAULT_DELAY, 0.05)
-        webrtc_ctx.video_processor.delay = delay
-        webrtc_ctx.audio_processor.delay = delay
 
 
 def app_object_detection():
@@ -339,7 +278,12 @@ def app_object_detection():
         "train",
         "tvmonitor",
     ]
-    COLORS = np.random.uniform(0, 255, size=(len(CLASSES), 3))
+
+    @st.experimental_singleton
+    def generate_label_colors():
+        return np.random.uniform(0, 255, size=(len(CLASSES), 3))
+
+    COLORS = generate_label_colors()
 
     download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
     download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
@@ -350,79 +294,78 @@ def app_object_detection():
         name: str
         prob: float
 
-    class MobileNetSSDVideoProcessor(VideoProcessorBase):
-        confidence_threshold: float
-        result_queue: "queue.Queue[List[Detection]]"
+    @st.cache
+    def get_model(
+        session_id,
+    ):  # HACK: Pass session_id as an arg to make the cache session-specific
+        return cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
 
-        def __init__(self) -> None:
-            self._net = cv2.dnn.readNetFromCaffe(
-                str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH)
-            )
-            self.confidence_threshold = DEFAULT_CONFIDENCE_THRESHOLD
-            self.result_queue = queue.Queue()
+    net = get_model(get_session_id())
 
-        def _annotate_image(self, image, detections):
-            # loop over the detections
-            (h, w) = image.shape[:2]
-            result: List[Detection] = []
-            for i in np.arange(0, detections.shape[2]):
-                confidence = detections[0, 0, i, 2]
+    confidence_threshold = st.slider(
+        "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
+    )
 
-                if confidence > self.confidence_threshold:
-                    # extract the index of the class label from the `detections`,
-                    # then compute the (x, y)-coordinates of the bounding box for
-                    # the object
-                    idx = int(detections[0, 0, i, 1])
-                    box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
-                    (startX, startY, endX, endY) = box.astype("int")
+    def _annotate_image(image, detections):
+        # loop over the detections
+        (h, w) = image.shape[:2]
+        result: List[Detection] = []
+        for i in np.arange(0, detections.shape[2]):
+            confidence = detections[0, 0, i, 2]
 
-                    name = CLASSES[idx]
-                    result.append(Detection(name=name, prob=float(confidence)))
+            if confidence > confidence_threshold:
+                # extract the index of the class label from the `detections`,
+                # then compute the (x, y)-coordinates of the bounding box for
+                # the object
+                idx = int(detections[0, 0, i, 1])
+                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                (startX, startY, endX, endY) = box.astype("int")
 
-                    # display the prediction
-                    label = f"{name}: {round(confidence * 100, 2)}%"
-                    cv2.rectangle(image, (startX, startY), (endX, endY), COLORS[idx], 2)
-                    y = startY - 15 if startY - 15 > 15 else startY + 15
-                    cv2.putText(
-                        image,
-                        label,
-                        (startX, y),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        0.5,
-                        COLORS[idx],
-                        2,
-                    )
-            return image, result
+                name = CLASSES[idx]
+                result.append(Detection(name=name, prob=float(confidence)))
 
-        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-            image = frame.to_ndarray(format="bgr24")
-            blob = cv2.dnn.blobFromImage(
-                cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
-            )
-            self._net.setInput(blob)
-            detections = self._net.forward()
-            annotated_image, result = self._annotate_image(image, detections)
+                # display the prediction
+                label = f"{name}: {round(confidence * 100, 2)}%"
+                cv2.rectangle(image, (startX, startY), (endX, endY), COLORS[idx], 2)
+                y = startY - 15 if startY - 15 > 15 else startY + 15
+                cv2.putText(
+                    image,
+                    label,
+                    (startX, y),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.5,
+                    COLORS[idx],
+                    2,
+                )
+        return image, result
 
-            # NOTE: This `recv` method is called in another thread,
-            # so it must be thread-safe.
-            self.result_queue.put(result)
+    result_queue = (
+        queue.Queue()
+    )  # TODO: A general-purpose shared state object may be more useful.
 
-            return av.VideoFrame.from_ndarray(annotated_image, format="bgr24")
+    def callback(frame: av.VideoFrame) -> av.VideoFrame:
+        image = frame.to_ndarray(format="bgr24")
+        blob = cv2.dnn.blobFromImage(
+            cv2.resize(image, (300, 300)), 0.007843, (300, 300), 127.5
+        )
+        net.setInput(blob)
+        detections = net.forward()
+        annotated_image, result = _annotate_image(image, detections)
+
+        # NOTE: This `recv` method is called in another thread,
+        # so it must be thread-safe.
+        result_queue.put(result)  # TODO:
+
+        return av.VideoFrame.from_ndarray(annotated_image, format="bgr24")
 
     webrtc_ctx = webrtc_streamer(
         key="object-detection",
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
-        video_processor_factory=MobileNetSSDVideoProcessor,
+        video_frame_callback=callback,
         media_stream_constraints={"video": True, "audio": False},
         async_processing=True,
     )
-
-    confidence_threshold = st.slider(
-        "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
-    )
-    if webrtc_ctx.video_processor:
-        webrtc_ctx.video_processor.confidence_threshold = confidence_threshold
 
     if st.checkbox("Show the detected labels", value=True):
         if webrtc_ctx.state.playing:
@@ -433,16 +376,11 @@ def app_object_detection():
             # Then the rendered video frames and the labels displayed here
             # are not strictly synchronized.
             while True:
-                if webrtc_ctx.video_processor:
-                    try:
-                        result = webrtc_ctx.video_processor.result_queue.get(
-                            timeout=1.0
-                        )
-                    except queue.Empty:
-                        result = None
-                    labels_placeholder.table(result)
-                else:
-                    break
+                try:
+                    result = result_queue.get(timeout=1.0)
+                except queue.Empty:
+                    result = None
+                labels_placeholder.table(result)
 
     st.markdown(
         "This demo uses a model and code from "
@@ -452,7 +390,7 @@ def app_object_detection():
 
 
 def app_streaming():
-    """ Media streamings """
+    """Media streamings"""
     MEDIAFILES = {
         "big_buck_bunny_720p_2mb.mp4 (local)": {
             "url": "https://sample-videos.com/video123/mp4/720/big_buck_bunny_720p_2mb.mp4",  # noqa: E501
@@ -499,51 +437,54 @@ def app_streaming():
         #     options={"framerate": "30", "video_size": "1280x720"},
         # )
 
-    class OpenCVVideoProcessor(VideoProcessorBase):
-        type: Literal["noop", "cartoon", "edges", "rotate"]
+    key = f"media-streaming-{media_file_label}"
+    ctx: Optional[WebRtcStreamerContext] = st.session_state.get(key)
+    if media_file_info["type"] == "video" and ctx and ctx.state.playing:
+        _type = st.radio(
+            "Select transform type", ("noop", "cartoon", "edges", "rotate")
+        )
+    else:
+        _type = "noop"
 
-        def __init__(self) -> None:
-            self.type = "noop"
+    def video_frame_callback(frame: av.VideoFrame) -> av.VideoFrame:
+        img = frame.to_ndarray(format="bgr24")
 
-        def recv(self, frame: av.VideoFrame) -> av.VideoFrame:
-            img = frame.to_ndarray(format="bgr24")
+        if _type == "noop":
+            pass
+        elif _type == "cartoon":
+            # prepare color
+            img_color = cv2.pyrDown(cv2.pyrDown(img))
+            for _ in range(6):
+                img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
+            img_color = cv2.pyrUp(cv2.pyrUp(img_color))
 
-            if self.type == "noop":
-                pass
-            elif self.type == "cartoon":
-                # prepare color
-                img_color = cv2.pyrDown(cv2.pyrDown(img))
-                for _ in range(6):
-                    img_color = cv2.bilateralFilter(img_color, 9, 9, 7)
-                img_color = cv2.pyrUp(cv2.pyrUp(img_color))
+            # prepare edges
+            img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
+            img_edges = cv2.adaptiveThreshold(
+                cv2.medianBlur(img_edges, 7),
+                255,
+                cv2.ADAPTIVE_THRESH_MEAN_C,
+                cv2.THRESH_BINARY,
+                9,
+                2,
+            )
+            img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
 
-                # prepare edges
-                img_edges = cv2.cvtColor(img, cv2.COLOR_RGB2GRAY)
-                img_edges = cv2.adaptiveThreshold(
-                    cv2.medianBlur(img_edges, 7),
-                    255,
-                    cv2.ADAPTIVE_THRESH_MEAN_C,
-                    cv2.THRESH_BINARY,
-                    9,
-                    2,
-                )
-                img_edges = cv2.cvtColor(img_edges, cv2.COLOR_GRAY2RGB)
+            # combine color and edges
+            img = cv2.bitwise_and(img_color, img_edges)
+        elif _type == "edges":
+            # perform edge detection
+            img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
+        elif _type == "rotate":
+            # rotate image
+            rows, cols, _ = img.shape
+            M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
+            img = cv2.warpAffine(img, M, (cols, rows))
 
-                # combine color and edges
-                img = cv2.bitwise_and(img_color, img_edges)
-            elif self.type == "edges":
-                # perform edge detection
-                img = cv2.cvtColor(cv2.Canny(img, 100, 200), cv2.COLOR_GRAY2BGR)
-            elif self.type == "rotate":
-                # rotate image
-                rows, cols, _ = img.shape
-                M = cv2.getRotationMatrix2D((cols / 2, rows / 2), frame.time * 45, 1)
-                img = cv2.warpAffine(img, M, (cols, rows))
+        return av.VideoFrame.from_ndarray(img, format="bgr24")
 
-            return av.VideoFrame.from_ndarray(img, format="bgr24")
-
-    webrtc_ctx = webrtc_streamer(
-        key=f"media-streaming-{media_file_label}",
+    webrtc_streamer(
+        key=key,
         mode=WebRtcMode.RECVONLY,
         rtc_configuration=RTC_CONFIGURATION,
         media_stream_constraints={
@@ -551,13 +492,8 @@ def app_streaming():
             "audio": media_file_info["type"] == "audio",
         },
         player_factory=create_player,
-        video_processor_factory=OpenCVVideoProcessor,
+        video_frame_callback=video_frame_callback,
     )
-
-    if media_file_info["type"] == "video" and webrtc_ctx.video_processor:
-        webrtc_ctx.video_processor.type = st.radio(
-            "Select transform type", ("noop", "cartoon", "edges", "rotate")
-        )
 
     st.markdown(
         "The video filter in this demo is based on "
@@ -673,7 +609,7 @@ def app_sendonly_audio():
 
 
 def app_media_constraints():
-    """ A sample to configure MediaStreamConstraints object """
+    """A sample to configure MediaStreamConstraints object"""
     frame_rate = 5
     webrtc_streamer(
         key="media-constraints",
@@ -692,14 +628,30 @@ def app_media_constraints():
 
 
 def app_programatically_play():
-    """ A sample of controlling the playing state from Python. """
+    """A sample of controlling the playing state from Python."""
     playing = st.checkbox("Playing", value=True)
 
     webrtc_streamer(
-        key="media-constraints",
+        key="programatic_control",
         desired_playing_state=playing,
         mode=WebRtcMode.SENDRECV,
         rtc_configuration=RTC_CONFIGURATION,
+    )
+
+
+def app_customize_ui_texts():
+    webrtc_streamer(
+        key="custom_ui_texts",
+        rtc_configuration=RTC_CONFIGURATION,
+        translations={
+            "start": "開始",
+            "stop": "停止",
+            "select_device": "デバイス選択",
+            "media_api_not_available": "Media APIが利用できない環境です",
+            "device_ask_permission": "メディアデバイスへのアクセスを許可してください",
+            "device_not_available": "メディアデバイスを利用できません",
+            "device_access_denied": "メディアデバイスへのアクセスが拒否されました",
+        },
     )
 
 
