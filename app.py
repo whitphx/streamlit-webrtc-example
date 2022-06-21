@@ -20,7 +20,6 @@ from streamlit_webrtc import (
     WebRtcStreamerContext,
     webrtc_streamer,
 )
-from streamlit_webrtc.session_info import get_session_id
 
 HERE = Path(__file__).parent
 
@@ -294,13 +293,13 @@ def app_object_detection():
         name: str
         prob: float
 
-    @st.cache
-    def get_model(
-        session_id,
-    ):  # HACK: Pass session_id as an arg to make the cache session-specific
-        return cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
-
-    net = get_model(get_session_id())
+    # Session-specific caching
+    cache_key = "object_detection_dnn"
+    if cache_key in st.session_state:
+        net = st.session_state[cache_key]
+    else:
+        net = cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
+        st.session_state[cache_key] = net
 
     confidence_threshold = st.slider(
         "Confidence threshold", 0.0, 1.0, DEFAULT_CONFIDENCE_THRESHOLD, 0.05
