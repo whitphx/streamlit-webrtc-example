@@ -3,7 +3,7 @@ matplotlib==3.5.1
 numpy==1.22.3
 opencv-python-headless==4.5.5.64
 pydub==0.25.1
-streamlit==1.14.0
+streamlit==1.15.1
 streamlit_webrtc==0.44.0
 typing_extensions==4.1.1
 protobuf~=3.19.0
