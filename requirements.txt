@@ -5,5 +5,5 @@ opencv-python-headless==4.5.5.64
 pydub==0.25.1
 streamlit==1.14.0
 streamlit_webrtc==0.44.2
-typing_extensions==4.1.1
+typing_extensions==4.4.0
 protobuf~=3.19.0
