@@ -1,6 +1,6 @@
 # streamlit-webrtc-example
 
-Hosted on Streamlit Cloud: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py) https://share.streamlit.io/whitphx/streamlit-webrtc-example/main/app.py
+Hosted on Streamlit Cloud: [![Open in Streamlit](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://webrtc.streamlit.app/) https://webrtc.streamlit.app/
 
 [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/D1D2ERWFG)
 
