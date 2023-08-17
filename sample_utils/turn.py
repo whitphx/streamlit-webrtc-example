@@ -32,7 +32,7 @@ def get_ice_servers():
     try:
         token = client.tokens.create()
     except TwilioRestException as e:
-        logger.warning(
+        st.warning(
             f"Error occurred while accessing Twilio API. Fallback to a free STUN server from Google. ({e})"  # noqa: E501
         )
         return [{"urls": ["stun:stun.l.google.com:19302"]}]
