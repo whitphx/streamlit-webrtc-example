@@ -1,4 +1,4 @@
-opencv-python-headless==4.8.1.78
+opencv-python-headless
 pydub==0.25.1
 streamlit_webrtc~=0.47.7
 twilio~=8.10.1
