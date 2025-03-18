@@ -1,5 +1,5 @@
 opencv-python-headless
 pydub==0.25.1
-streamlit_webrtc~=0.51.2
+streamlit_webrtc~=0.52.0
 twilio~=9.4.3
 matplotlib
