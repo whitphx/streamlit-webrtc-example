@@ -1,5 +1,5 @@
 opencv-python-headless
 pydub==0.25.1
-https://fix-auto-turn-set-server-sid.streamlit-webrtc-hosting.pages.dev/streamlit_webrtc-0.53.2.dev11+gd2ff900-py3-none-any.whl
+https://fix-auto-turn-set-server-sid.streamlit-webrtc-hosting.pages.dev/streamlit_webrtc-0.53.2.dev12+g35a3005-py3-none-any.whl
 twilio~=9.4.3
 matplotlib
