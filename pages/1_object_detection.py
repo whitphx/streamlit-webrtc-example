@@ -12,7 +12,13 @@ import av
 import cv2
 import numpy as np
 import streamlit as st
-from streamlit_webrtc import WebRtcMode, webrtc_streamer
+from streamlit_session_memo import st_session_memo
+from streamlit_webrtc import (
+    WebRtcMode,
+    webrtc_streamer,
+    __version__ as st_webrtc_version,
+)
+import aiortc
 
 from sample_utils.download import download_file
 
@@ -70,13 +76,12 @@ download_file(MODEL_URL, MODEL_LOCAL_PATH, expected_size=23147564)
 download_file(PROTOTXT_URL, PROTOTXT_LOCAL_PATH, expected_size=29353)
 
 
-# Session-specific caching
-cache_key = "object_detection_dnn"
-if cache_key in st.session_state:
-    net = st.session_state[cache_key]
-else:
-    net = cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
-    st.session_state[cache_key] = net
+@st_session_memo
+def get_model():
+    return cv2.dnn.readNetFromCaffe(str(PROTOTXT_LOCAL_PATH), str(MODEL_LOCAL_PATH))
+
+
+net = get_model()
 
 score_threshold = st.slider("Score threshold", 0.0, 1.0, 0.5, 0.05)
 
@@ -161,4 +166,10 @@ st.markdown(
     "This demo uses a model and code from "
     "https://github.com/robmarkcole/object-detection-app. "
     "Many thanks to the project."
+)
+
+st.markdown(
+    f"Streamlit version: {st.__version__}  \n"
+    f"Streamlit-WebRTC version: {st_webrtc_version}  \n"
+    f"aiortc version: {aiortc.__version__}  \n"
 )
